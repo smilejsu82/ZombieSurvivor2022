@@ -2,9 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class PlayerControl : MonoBehaviour
 {
+    public Image hpGauge;
     public GunControl gun;
 
     public Transform gunPivot;
@@ -23,6 +25,8 @@ public class PlayerControl : MonoBehaviour
     private float hp;
 
 
+    private GameObject targetGo;
+
     void Start()
     {
         this.hp = this.maxHp;
@@ -30,6 +34,16 @@ public class PlayerControl : MonoBehaviour
         anim = GetComponent<Animator>();
         //joyStick.SnapX = true;
         //joyStick.SnapY = true;
+
+        this.gun.lookatEvent.AddListener((targetGo)=>{
+            this.targetGo = targetGo;
+            this.transform.LookAt(this.targetGo.transform);
+        });
+
+        this.gun.shotCompleteEvent.AddListener(()=>{
+            this.targetGo = null;
+        });
+
         btnReload.onClick.AddListener(() => {
             anim.SetTrigger("Reload");
             gun.Reload();
@@ -50,11 +64,21 @@ public class PlayerControl : MonoBehaviour
 
             if (dir != Vector2.zero)
             {
-                float angle = Mathf.Atan2(dir.x, dir.y) * Mathf.Rad2Deg;
-                this.transform.rotation = Quaternion.AngleAxis(angle, Vector3.up);
                 this.anim.SetInteger("MoveVec", 1);
 
-                this.transform.Translate(Vector3.forward * this.moveSpeed * Time.deltaTime);
+                if(this.targetGo == null){
+                    
+                    float angle = Mathf.Atan2(dir.x, dir.y) * Mathf.Rad2Deg;
+                    this.transform.rotation = Quaternion.AngleAxis(angle, Vector3.up);    
+                    this.transform.Translate(Vector3.forward * this.moveSpeed * Time.deltaTime);
+
+                }else{
+                    
+                    var normDir = new Vector3(dir.x, 0, dir.y).normalized;
+
+                    this.transform.Translate(normDir * this.moveSpeed * Time.deltaTime, Space.World);
+
+                }
             }
             else
             {
@@ -95,5 +119,30 @@ public class PlayerControl : MonoBehaviour
     public bool IsDead()
     {
         return this.hp <= 0;
+    }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.white;
+        Gizmos.DrawWireSphere(this.transform.position, this.gun.attackRange);
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        Debug.LogFormat("OnTriggerEnter: {0}", other);
+
+        //체력 감소 
+
+        this.hp -= 10;
+
+        if(this.hp <= 0)
+        {
+            this.hp = 0;
+            Debug.Log("죽었습니다.");
+            
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
+
+        this.hpGauge.fillAmount = this.hp / this.maxHp;
     }
 }

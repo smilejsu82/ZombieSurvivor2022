@@ -1,12 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class GunControl : MonoBehaviour
 {
     LineRenderer lineRenderer;
     [SerializeField] Transform firePoint;
-    float attackRange = 5f;
+    public float attackRange = 5f;
     Coroutine routine;
     int ammo = 8;
 
@@ -20,6 +21,9 @@ public class GunControl : MonoBehaviour
     private AudioClip shotClip;
     [SerializeField]
     private AudioClip reloadClip;
+
+    public UnityEvent<GameObject> lookatEvent = new UnityEvent<GameObject>();
+    public UnityEvent shotCompleteEvent = new UnityEvent();
 
 
     private void Start()
@@ -59,6 +63,39 @@ public class GunControl : MonoBehaviour
 
     IEnumerator ShotRoutine()
     {
+
+        var playerCenter = this.transform.root.GetComponent<CapsuleCollider>().bounds.center;
+        var layerMask = LayerMask.NameToLayer("Zombie");
+
+        //find target 
+        var colliders =  Physics.OverlapSphere(playerCenter, this.attackRange, 1 << layerMask);
+
+        //find nearest target 
+        var max = 100000.0f;
+        GameObject targetGo = null;
+        for(int i = 0; i<colliders.Length; i++){
+
+            var targetCenter = colliders[i].bounds.center;
+            var distance = Vector3.Distance(playerCenter, targetCenter);
+            if( max > distance){
+                max = distance;
+                targetGo = colliders[i].transform.gameObject;
+            }
+        }
+        //found targetGo 
+        if( targetGo != null){
+            //send event -> look at 
+            Debug.DrawLine(playerCenter, targetGo.GetComponent<CapsuleCollider>().bounds.center, Color.red, 2.0f);
+
+            lookatEvent.Invoke(targetGo);
+
+        }
+        else{
+            // not thing happen 
+        }
+
+        
+
         this.muzzleVfx.Play();
         this.shellEjectVfx.Play();
         this.gunAudioPlayer.PlayOneShot(this.shotClip);
@@ -78,5 +115,9 @@ public class GunControl : MonoBehaviour
         lineRenderer.enabled = false;
         yield return new WaitForSeconds(0.4f);
         routine = null;
+
+
+        //end of shot event 
+        this.shotCompleteEvent.Invoke();
     }
 }
