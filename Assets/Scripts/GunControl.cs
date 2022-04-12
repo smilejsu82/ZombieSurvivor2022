@@ -6,7 +6,7 @@ using UnityEngine.Events;
 public class GunControl : MonoBehaviour
 {
     LineRenderer lineRenderer;
-    [SerializeField] Transform firePoint;
+    public Transform firePoint;
     public float attackRange = 5f;
     Coroutine routine;
     int ammo = 8;

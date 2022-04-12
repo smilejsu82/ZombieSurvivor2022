@@ -20,19 +20,21 @@ public class Zombie : MonoBehaviour
 
     private UnityEvent moveCompleteEvent = new UnityEvent();
     private UnityEvent attackCompleteEvent = new UnityEvent();
+    public UnityEvent dieEvent = new UnityEvent();
 
     public enum eState{
         Idle, Move, Attack 
     }
 
-    //test
-    private void Start()
+    public void Init(Vector3 initPosition)
     {
-        this.Init();    
-    }
+        this.GetComponent<CapsuleCollider>().enabled = true;
+        this.GetComponent<BoxCollider>().enabled = true;
 
-    public void Init()
-    {
+        this.transform.parent = null;
+        this.transform.position = initPosition;
+        this.gameObject.SetActive(true);
+
         this.agent = this.GetComponent<NavMeshAgent>();
         this.anim = this.GetComponent<Animator>();
         this.navMeshPath = new NavMeshPath();
@@ -178,6 +180,25 @@ public class Zombie : MonoBehaviour
         this.anim.SetInteger("State", 2);
 
         this.StartCoroutine(this.AttackRoutine());
+    }
+
+    public void Die()
+    {
+        this.GetComponent<CapsuleCollider>().enabled = false;
+        this.GetComponent<BoxCollider>().enabled = false;
+
+        this.StopAllCoroutines();
+
+        this.StartCoroutine(this.DieRoutine());
+    }
+
+    private IEnumerator DieRoutine()
+    {
+        this.anim.SetTrigger("Die");
+
+        yield return new WaitForSeconds(2.5f);
+
+        this.dieEvent.Invoke();
     }
 
     private IEnumerator AttackRoutine()

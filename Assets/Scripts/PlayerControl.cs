@@ -38,6 +38,18 @@ public class PlayerControl : MonoBehaviour
         this.gun.lookatEvent.AddListener((targetGo)=>{
             this.targetGo = targetGo;
             this.transform.LookAt(this.targetGo.transform);
+
+            var ray = new Ray(this.gun.firePoint.position, this.gun.firePoint.forward);
+            Debug.DrawRay(ray.origin, ray.direction * this.gun.attackRange, Color.cyan, 2.0f);
+            RaycastHit hit;
+            if( Physics.Raycast(ray, out hit, this.gun.attackRange) ){
+                if(hit.transform.tag == "Zombie")
+                {
+                    //Debug.LogError(hit.transform.gameObject);
+                    hit.transform.gameObject.GetComponent<Zombie>().Die();
+                }
+            }
+
         });
 
         this.gun.shotCompleteEvent.AddListener(()=>{
